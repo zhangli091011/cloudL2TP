@@ -8,14 +8,15 @@ services:
   panel:
     build: .
     container_name: cloud-router-panel
-    ports:
-      - "3001:3001"
+    # network_mode: host 让容器共享宿主机网络栈
+    # 这样容器内的 127.0.0.1 就是宿主机的 127.0.0.1，可以直接访问宿主机的 mihomo
+    network_mode: host
     environment:
       - API_PORT=3001
       - JWT_SECRET=${JWT_SECRET:-change-me-to-a-random-secret}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-      # 连接宿主机 mihomo：Linux 用 docker0 网桥网关 IP，macOS/Windows 用 host.docker.internal
-      - MIHOMO_API_URL=${MIHOMO_API_URL:-http://172.17.0.1:9090}
+      # host 网络模式下，127.0.0.1 就是宿主机
+      - MIHOMO_API_URL=${MIHOMO_API_URL:-http://127.0.0.1:9090}
       - MIHOMO_API_SECRET=${MIHOMO_API_SECRET:-}
       - MIHOMO_CONFIG_DIR=${MIHOMO_CONFIG_DIR:-/etc/mihomo}
       - MIHOMO_CONFIG_BACKUP_DIR=${MIHOMO_CONFIG_BACKUP_DIR:-/etc/mihomo/backups}
@@ -30,7 +31,9 @@ services:
     restart: unless-stopped
 
   # Mihomo（可选：在容器中运行 mihomo）
-  # 如果 mihomo 也跑在容器中，取消下面注释并修改 panel 的 MIHOMO_API_URL=http://mihomo:9090
+  # 如果 mihomo 也跑在容器中，取消下面注释
+  # 注意：如果启用 mihomo 容器，panel 的 MIHOMO_API_URL 要改为 http://mihomo:9090
+  # 且需要把 panel 的 network_mode 改回 bridge
   # mihomo:
   #   image: metacubex/mihomo:latest
   #   container_name: mihomo
