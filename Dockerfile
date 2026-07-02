@@ -26,6 +26,9 @@ RUN npm -w apps/web run build
 # Stage 2: 生产运行（tsx 直接运行 TS，无需 tsc 编译）
 FROM node:20-alpine
 
+# 安装 curl 用于连通性诊断
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
 # 复制 workspace 配置并安装依赖（不含 devDeps，但 tsx 已移至 dependencies）
@@ -49,6 +52,10 @@ COPY --from=builder /app/apps/web/dist ./apps/web/dist
 # 复制根 package.json（workspaces 配置）
 COPY package.json ./
 
+# 复制启动脚本
+COPY scripts/wait-for-mihomo.sh /usr/local/bin/wait-for-mihomo.sh
+RUN chmod +x /usr/local/bin/wait-for-mihomo.sh
+
 # 创建数据和日志目录
 RUN mkdir -p /app/data /app/logs
 
@@ -56,5 +63,5 @@ EXPOSE 3001
 
 ENV NODE_ENV=production
 
-# tsx 直接运行 TypeScript 源码
-CMD ["npx", "tsx", "apps/api/src/index.ts"]
+# 启动前等待 mihomo 就绪，然后 tsx 直接运行 TypeScript 源码
+CMD ["/usr/local/bin/wait-for-mihomo.sh"]
