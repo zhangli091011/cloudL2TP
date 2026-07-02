@@ -59,13 +59,34 @@ npm run dev:web
 
 #### 1. 安装 Mihomo
 
-```bash
-# Ubuntu/Debian
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/MetaCubeX/mihomo/refs/heads/Meta/scripts/start_linux.sh)"
+参考官方安装指南: [https://wiki.metacubex.one/startup/](https://wiki.metacubex.one/startup/)
 
-# 或手动下载
-curl -LO https://github.com/MetaCubeX/mihomo/releases/latest/download/mihomo-linux-amd64
-sudo install mihomo-linux-amd64 /usr/local/bin/mihomo
+**方法 A: DEB 包安装 (Ubuntu/Debian 推荐)**
+
+```bash
+# 下载最新稳定版 DEB 包（将版本号替换为最新版本）
+VERSION=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f4)
+curl -LO "https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.deb"
+sudo dpkg -i mihomo-linux-amd64-*.deb
+```
+
+**方法 B: RPM 包安装 (RHEL/CentOS/Fedora)**
+
+```bash
+VERSION=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f4)
+curl -LO "https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.rpm"
+sudo rpm -ivh mihomo-linux-amd64-*.rpm
+```
+
+**方法 C: 二进制手动安装 (通用)**
+
+```bash
+# 下载并解压（以 amd64 为例，其他架构见 wiki）
+VERSION=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep tag_name | cut -d '"' -f4)
+curl -LO "https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.gz"
+gzip -d mihomo-linux-amd64-*.gz
+chmod +x mihomo-linux-amd64-*
+sudo mv mihomo-linux-amd64-* /usr/local/bin/mihomo
 ```
 
 #### 2. 配置 Mihomo
