@@ -78,7 +78,7 @@ router.post('/:id/update', authMiddleware, async (req: Request, res: Response) =
   try {
     const id = parseInt(req.params.id)
     const result = await subscriptionService.updateSubscription(id)
-    res.json({ success: result.success, ...result })
+    res.json(result)
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message })
   }

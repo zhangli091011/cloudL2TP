@@ -10,6 +10,9 @@ import { logService } from '../services/logService'
 
 const router = Router()
 
+/** 默认策略组名称候选项 */
+const GROUP_CANDIDATES = ['Proxy', 'GLOBAL', '🚀 节点选择', '手动切换']
+
 // GET /api/nodes - 获取所有节点（可选过滤）
 router.get('/', authMiddleware, (req: Request, res: Response) => {
   try {
@@ -41,7 +44,12 @@ router.get('/', authMiddleware, (req: Request, res: Response) => {
 router.post('/test-all', authMiddleware, async (_req: Request, res: Response) => {
   try {
     const db = getDb()
-    const nodes = db.prepare('SELECT id, name FROM nodes WHERE alive = 1').all() as any[]
+    const nodes = db.prepare('SELECT id, name FROM nodes').all() as any[]
+
+    if (nodes.length === 0) {
+      res.json({ success: true, data: [] })
+      return
+    }
 
     const results: { name: string; latency: number | null }[] = []
 
@@ -97,14 +105,12 @@ router.post('/:id/select', authMiddleware, async (req: Request, res: Response) =
       return
     }
 
-    // 找到主策略组
+    // 找到主策略组（按候选项顺序查找）
     const groups = await mihomoService.getProxyGroups()
-    const mainGroup = groups.find(g =>
-      ['GLOBAL', 'Proxy', '🚀 节点选择'].includes(g.name)
-    ) || groups[0]
+    const mainGroup = groups.find(g => GROUP_CANDIDATES.includes(g.name)) || groups[0]
 
     if (!mainGroup) {
-      res.status(500).json({ success: false, error: '未找到可用的策略组' })
+      res.status(500).json({ success: false, error: '未找到可用的策略组，请确认 mihomo 配置已正确加载（检查 MIHOMO_API_URL 和 secret）' })
       return
     }
 

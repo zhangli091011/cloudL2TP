@@ -13,6 +13,9 @@ import type { Subscription, CreateSubscriptionRequest } from '@cloud-router/shar
 import axios from 'axios'
 
 class SubscriptionService {
+  private autoUpdateTimer: ReturnType<typeof setInterval> | null = null
+  private autoUpdateRunning = false
+
   /** 获取所有订阅 */
   getAll(): Subscription[] {
     const db = getDb()
@@ -183,6 +186,56 @@ class SubscriptionService {
     }
   }
 
+  /** 更新所有启用的订阅 */
+  async updateEnabledSubscriptions(): Promise<void> {
+    const db = getDb()
+    const subscriptions = db.prepare(
+      'SELECT id, name FROM subscriptions WHERE enabled = 1 ORDER BY id ASC'
+    ).all() as { id: number; name: string }[]
+
+    if (subscriptions.length === 0) {
+      logService.info('没有启用的订阅，跳过自动更新')
+      return
+    }
+
+    logService.info(`开始自动更新订阅，共 ${subscriptions.length} 个`)
+
+    for (const sub of subscriptions) {
+      const result = await this.updateSubscription(sub.id)
+      if (!result.success) {
+        logService.warn(`自动更新订阅失败: ${sub.name}`, { error: result.error })
+      }
+    }
+
+    logService.info('订阅自动更新完成')
+  }
+
+  /** 启动订阅自动更新调度器 */
+  startAutoUpdateScheduler(): void {
+    if (this.autoUpdateTimer) return
+
+    const intervalSeconds = Math.max(config.subscriptionUpdateInterval, 60)
+    const intervalMs = intervalSeconds * 1000
+
+    this.autoUpdateTimer = setInterval(() => {
+      if (this.autoUpdateRunning) {
+        logService.warn('上一轮订阅自动更新尚未完成，跳过本轮')
+        return
+      }
+
+      this.autoUpdateRunning = true
+      this.updateEnabledSubscriptions()
+        .catch(err => {
+          logService.error('订阅自动更新任务异常', { error: err.message })
+        })
+        .finally(() => {
+          this.autoUpdateRunning = false
+        })
+    }, intervalMs)
+
+    logService.info(`订阅自动更新调度器已启动，间隔 ${intervalSeconds} 秒`)
+  }
+
   /** 重新生成 mihomo 配置并 reload */
   async regenerateConfig(): Promise<void> {
     try {
@@ -208,13 +261,14 @@ class SubscriptionService {
         }
       })
 
-      // 生成 config.yaml
-      const yamlContent = generateConfigYaml({ proxies })
-      const saved = saveConfigWithBackup(yamlContent)
+      // 生成 config.yaml（传入 configPath 以合并现有配置中的 external-controller/secret）
+      const configPath = `${config.mihomoConfigDir}/config.yaml`
+      const yamlContent = generateConfigYaml({ proxies }, configPath)
+      const saved = saveConfigWithBackup(yamlContent, configPath)
 
       if (saved) {
-        // reload mihomo
-        await mihomoService.reloadConfig()
+        // reload mihomo（传入正确的 config 路径）
+        await mihomoService.reloadConfig(configPath)
       }
     } catch (err: any) {
       logService.error('重新生成配置失败', { error: err.message })

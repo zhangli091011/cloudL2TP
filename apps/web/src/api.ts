@@ -71,6 +71,9 @@ class ApiClient {
   login(data: LoginRequest) { return this.post<LoginResponse>('/auth/login', data) }
   logout() { return this.post('/auth/logout') }
   getMe() { return this.get('/me') }
+  changePassword(data: { oldPassword: string; newPassword: string }) {
+    return this.post('/auth/change-password', data)
+  }
 
   // --- Dashboard ---
   getDashboard() { return this.get<DashboardData>('/dashboard') }

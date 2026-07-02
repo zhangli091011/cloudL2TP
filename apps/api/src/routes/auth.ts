@@ -30,6 +30,29 @@ router.post('/logout', authMiddleware, (_req: Request, res: Response) => {
   res.json({ success: true, message: '已登出' })
 })
 
+// POST /api/auth/change-password
+router.post('/change-password', authMiddleware, (req: Request, res: Response) => {
+  const { oldPassword, newPassword } = req.body
+
+  if (!oldPassword || !newPassword) {
+    res.status(400).json({ success: false, error: '旧密码和新密码不能为空' })
+    return
+  }
+
+  if (newPassword.length < 8) {
+    res.status(400).json({ success: false, error: '新密码至少需要 8 位' })
+    return
+  }
+
+  const changed = authService.changePassword(req.userId!, oldPassword, newPassword)
+  if (!changed) {
+    res.status(400).json({ success: false, error: '旧密码不正确' })
+    return
+  }
+
+  res.json({ success: true, message: '密码已修改' })
+})
+
 // GET /api/me
 router.get('/me', authMiddleware, (req: Request, res: Response) => {
   res.json({

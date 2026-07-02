@@ -24,10 +24,28 @@ interface GenerateConfigOptions {
 }
 
 /**
- * 生成完整的 mihomo config.yaml 内容
+ * 读取现有 mihomo config.yaml（用于合并 external-controller / secret 等字段）
  */
-export function generateConfigYaml(options: GenerateConfigOptions): string {
+function readExistingConfig(configPath: string): Record<string, any> | null {
+  try {
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, 'utf-8')
+      return yaml.load(raw) as Record<string, any>
+    }
+  } catch { /* ignore */ }
+  return null
+}
+
+/**
+ * 生成完整的 mihomo config.yaml 内容
+ * 会读取现有配置以保留 external-controller、secret 等用户自定义字段
+ */
+export function generateConfigYaml(options: GenerateConfigOptions, configPath?: string): string {
   const { proxies, proxyGroups, mode = 'rule' } = options
+
+  // 读取现有配置，保留用户自定义的 external-controller / secret / port 等
+  const existingPath = configPath || path.join(config.mihomoConfigDir, 'config.yaml')
+  const existing = readExistingConfig(existingPath)
 
   const proxyNames = proxies.map(p => p.name)
 
@@ -35,7 +53,7 @@ export function generateConfigYaml(options: GenerateConfigOptions): string {
   const defaultGroups = proxyGroups && proxyGroups.length > 0 ? proxyGroups : [
     {
       name: 'Proxy',
-      type: 'select' as const,
+      type: 'selector',
       proxies: proxyNames,
     },
   ]
@@ -44,17 +62,17 @@ export function generateConfigYaml(options: GenerateConfigOptions): string {
   const regionGroups = buildRegionGroups(proxies)
 
   const configObj: Record<string, any> = {
-    // 基础配置
-    'mixed-port': 7890,
-    'allow-lan': true,
-    'bind-address': '*',
-    mode: mode,
-    'log-level': 'info',
-    ipv6: false,
+    // 基础配置（优先沿用现有值）
+    'mixed-port': existing?.['mixed-port'] || existing?.port || 7890,
+    'allow-lan': existing?.['allow-lan'] ?? true,
+    'bind-address': existing?.['bind-address'] || '*',
+    mode: existing?.mode || mode,
+    'log-level': existing?.['log-level'] || 'info',
+    ipv6: existing?.ipv6 ?? false,
 
-    // External Controller
-    'external-controller': '0.0.0.0:9090',
-    secret: config.mihomoApiSecret || undefined,
+    // External Controller（沿用现有值，不覆盖）
+    'external-controller': existing?.['external-controller'] || '0.0.0.0:9090',
+    ...(existing?.secret ? { secret: existing.secret } : config.mihomoApiSecret ? { secret: config.mihomoApiSecret } : {}),
 
     // DNS 配置
     dns: {
