@@ -53,7 +53,7 @@ export function generateConfigYaml(options: GenerateConfigOptions, configPath?: 
   const defaultGroups = proxyGroups && proxyGroups.length > 0 ? proxyGroups : [
     {
       name: 'Proxy',
-      type: 'selector',
+      type: 'select',
       proxies: proxyNames,
     },
   ]
