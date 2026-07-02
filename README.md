@@ -91,12 +91,48 @@ sudo mv mihomo-linux-amd64-* /usr/local/bin/mihomo
 
 #### 2. 配置 Mihomo
 
-首次启动会自动生成 `/etc/mihomo/config.yaml`，确保包含:
+如果你的 config.yaml 类似下面这样（匹配即直连）：
 
 ```yaml
+mixed-port: 7890
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-filter:
+    - "*"
+    - "+.lan"
+    - "+.local"
+  nameserver:
+    - system
+rules:
+  - MATCH,DIRECT
+```
+
+你只需要**添加两行**即可让控制面板接管：
+
+```yaml
+mixed-port: 7890
+
+# 在文件顶部或任意位置添加这两行
 external-controller: '0.0.0.0:9090'
 secret: 'your-secret-key'
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-filter:
+    - "*"
+    - "+.lan"
+    - "+.local"
+  nameserver:
+    - system
+rules:
+  - MATCH,DIRECT
 ```
+
+> 添加订阅并更新后，控制面板会**自动重写整个 config.yaml**（备份旧配置到 `/etc/mihomo/backups/`），把 `MATCH,DIRECT` 替换为代理组规则，并注入订阅解析出的节点列表。所以你不需要手动写代理配置，只需确保 `external-controller` 和 `secret` 这两个字段存在即可。
 
 #### 3. 启动控制面板
 
