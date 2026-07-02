@@ -74,6 +74,9 @@ export function generateConfigYaml(options: GenerateConfigOptions, configPath?: 
     'external-controller': existing?.['external-controller'] || '0.0.0.0:9090',
     ...(existing?.secret ? { secret: existing.secret } : config.mihomoApiSecret ? { secret: config.mihomoApiSecret } : {}),
 
+    // TProxy 透明代理（用于接收 iptables redirect 的 VPN 流量）
+    'tproxy-port': existing?.['tproxy-port'] || 7892,
+
     // DNS 配置
     dns: {
       enable: true,
