@@ -1,0 +1,48 @@
+# ============================================================
+# 云端软路由控制面板 - Docker Compose
+# ============================================================
+version: '3.8'
+
+services:
+  # 控制面板
+  panel:
+    build: .
+    container_name: cloud-router-panel
+    ports:
+      - "3001:3001"
+    environment:
+      - API_PORT=3001
+      - JWT_SECRET=${JWT_SECRET:-change-me-to-a-random-secret}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - MIHOMO_API_URL=${MIHOMO_API_URL:-http://host.docker.internal:9090}
+      - MIHOMO_API_SECRET=${MIHOMO_API_SECRET:-}
+      - MIHOMO_CONFIG_DIR=${MIHOMO_CONFIG_DIR:-/etc/mihomo}
+      - MIHOMO_CONFIG_BACKUP_DIR=${MIHOMO_CONFIG_BACKUP_DIR:-/etc/mihomo/backups}
+      - DATABASE_PATH=/app/data/panel.db
+      - MOCK_MODE=${MOCK_MODE:-false}
+      - NODE_ENV=production
+    volumes:
+      # 持久化数据库
+      - ./data:/app/data
+      # 允许容器管理宿主机 mihomo 配置（生产环境）
+      - ${MIHOMO_CONFIG_DIR:-/etc/mihomo}:${MIHOMO_CONFIG_DIR:-/etc/mihomo}:rw
+    restart: unless-stopped
+    network_mode: bridge
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Mihomo（可选：在容器中运行 mihomo）
+  # mihomo:
+  #   image: metacubex/mihomo:latest
+  #   container_name: mihomo
+  #   volumes:
+  #     - ./mihomo-config:/etc/mihomo:rw
+  #   ports:
+  #     - "9090:9090"
+  #     - "7890:7890"
+  #     - "7891:7891"
+  #     - "7892:7892"
+  #   restart: unless-stopped
+  #   network_mode: host
+  #   cap_add:
+  #     - NET_ADMIN

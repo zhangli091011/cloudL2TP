@@ -1,0 +1,19 @@
+{
+  "name": "cloud-router-panel",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm -w apps/api run dev",
+    "dev:web": "npm -w apps/web run dev",
+    "build": "npm -w packages/shared run build && npm -w apps/api run build && npm -w apps/web run build",
+    "start": "npm -w apps/api run start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.5.3"
+  }
+}
